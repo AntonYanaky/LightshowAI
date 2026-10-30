@@ -240,7 +240,8 @@ all_elements = ['Ti', 'V', 'Cr', 'Mn', 'Fe', 'Co', 'Ni', 'Cu']
 ene_start = {'Ti': 4964.504, 'V': 5464.097, 'Cr': 5989.168, 'Mn': 6537.886, 
              'Fe': 7111.23, 'Co': 7709.282, 'Ni': 8332.181, 'Cu': 8983.173}
 ene_grid = {el: np.linspace(start, start + 35, 141) for el, start in ene_start.items()}
-xas_model_names = [f'{el} FEFF' for el in all_elements] + ['Ti VASP', 'Cu VASP']
+ene_grid['Zn'] = np.linspace(8900, 9050, 1000)[333:733:2] + 705.3
+xas_model_names = [f'{el} FEFF' for el in all_elements] + ['Ti VASP', 'Cu VASP', 'Zn VASP']
 absorber_dropdown = dcc.Dropdown(xas_model_names, clearable=False, value='Ti VASP', id='absorber')
 
 # All available metrics for display
@@ -1663,7 +1664,7 @@ def handle_batch_upload(contents_list, filenames_list, exp_data, el_type, existi
             
             # Check if this structure already exists - preserve selection state
             old_entry = next((s for s in existing_scores if s['structure_id'] == structure_id), None)
-            was_selected = old_entry.get('selected', False) if old_entry else False
+            was_selected = old_entry.get('selected', False) if old_entry else True
             
             # Remove old entry if exists
             existing_scores = [s for s in existing_scores if s['structure_id'] != structure_id]
@@ -2185,7 +2186,7 @@ def update_matching_results(st_data, exp_data, clear_clicks, checkbox_values, so
     match_result = get_spectrum_match_score(predicted_spectrum, exp_data, element)
     
     old_entry = next((s for s in existing_scores if s['structure_id'] == structure_id), None)
-    was_selected = old_entry.get('selected', False) if old_entry else False
+    was_selected = old_entry.get('selected', False) if old_entry else True
     
     updated_scores = [s for s in existing_scores if s['structure_id'] != structure_id]
     

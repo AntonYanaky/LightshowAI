@@ -1,4 +1,7 @@
 import pathlib
+import os
+
+import requests
 from functools import cache
 from typing import List
 
@@ -158,7 +161,17 @@ class XASModel:
         return spectrum
 
 
+def zn_rpc(structure):
+    url = os.getenv("ZN_XAS_RPC_URL", "http://127.0.0.1:8000/v1/predict")
+    response = requests.post(url, json={"structure": structure.as_dict()}, timeout=120)
+    response.raise_for_status()
+    return {int(i): values for i, values in response.json()["spectra_by_site"].items()}
+
+
 def predict(structure, absorbing_site, spectroscopy_type):
+    if (absorbing_site, spectroscopy_type) == ("Zn", "VASP"):
+        return zn_rpc(structure)
+
     site_idxs = [
         ii
         for ii, site in enumerate(structure.sites)
