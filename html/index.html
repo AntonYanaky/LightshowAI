@@ -17,6 +17,9 @@
 	<link rel="manifest" href="site.webmanifest">
 	<meta name="viewport" content="width=device-width, initial-scale=1" />
 	<style>
+	#announcement-banner { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 12px 20px 0; padding: 10px 14px; border-left: 4px solid #1A5B7D; background: #eef6f9; color: #333; }
+	#announcement-banner[hidden] { display: none !important; }
+	#announcement-close { border: 0; background: transparent; color: #555; font-size: 1.4rem; cursor: pointer; }
 	@media (max-width: 768px) {
 	/* Tabs nav: horizontal scroll on mobile. */
 	.tabs ul.ui-tabs-nav {
@@ -157,9 +160,14 @@
             <ul style="border-radius: 0; padding-top: 10px; background: #fff !important;">
                 <li><a href="#app-tab">Analysis</a></li>
                 <li><a href="#manual-tab">Manual</a></li>
+                <li><a href="#news-tab">News</a></li>
                 <li><a href="#info-tab">About</a></li>
                 <li><a href="#license-tab">License</a></li>
             </ul>
+			<aside id="announcement-banner" role="status" aria-live="polite">
+				<span><strong>New:</strong> Zn VASP model. <a id="announcement-news-link" href="#news-tab">News</a></span>
+				<button id="announcement-close" type="button" aria-label="Dismiss announcement">&times;</button>
+			</aside>
 
 			<!-- lightshowai -->
 			<div id="app-tab" style="padding: 0;">
@@ -252,6 +260,20 @@
 						<p style="font-size: 1.1em; line-height: 1.6; margin-bottom: 1.2em;">
 							The Downloading Data utility allows you to export your analysis and processed datasets. Clicking the "Download Selected POSCARs and Data" button compiles your selected results into a ZIP file. This package contains the POSCAR structure files for the selected materials, a .csv file of the predicted spectra (including site-specific and mean data), and a separate .csv file containing your processed experimental spectrum.
 						</p>
+					</div>
+					<div class="clear"></div>
+				</div>
+			</div>
+
+			<!-- news tab -->
+			<div id="news-tab" style="background-color: #f5f5f5; padding: 40px 0 60px 0; margin-top: 16px; flex-grow: 1;">
+				<div class="container_24">
+					<div class="grid_24">
+						<h1 style="border: 0px solid black;">News</h1>
+						<p style="font-size: 1.1em; line-height: 1.6; margin-bottom: 0.5em;"><strong>October 30, 2026</strong></p>
+						<ul style="font-size: 1.1em; line-height: 1.6; margin-bottom: 1.2em; padding-left: 20px;">
+							<li>Zn VASP model added.</li>
+						</ul>
 					</div>
 					<div class="clear"></div>
 				</div>
@@ -404,6 +426,18 @@
 						window.forceDashResize();
 					}
 				}
+			});
+
+			const announcement = $('#announcement-banner');
+			const announcementKey = 'lightshowai-announcement-zn-vasp-dismissed';
+			try { announcement.prop('hidden', localStorage.getItem(announcementKey) === 'true'); } catch (e) {}
+			$('#announcement-close').on('click', function () {
+				announcement.prop('hidden', true);
+				try { localStorage.setItem(announcementKey, 'true'); } catch (e) {}
+			});
+			$('#announcement-news-link').on('click', function (event) {
+				event.preventDefault();
+				$('.tabs').tabs('option', 'active', $('.tabs ul.ui-tabs-nav a[href="#news-tab"]').parent().index());
 			});
 
 			fetch('/visitor-count')
