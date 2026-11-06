@@ -20,6 +20,8 @@
 	#announcement-banner { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 12px 20px 0; padding: 10px 14px; border-left: 4px solid #1A5B7D; background: #eef6f9; color: #333; }
 	#announcement-banner[hidden] { display: none !important; }
 	#announcement-close { border: 0; background: transparent; color: #555; font-size: 1.4rem; cursor: pointer; }
+	#news-entries p { font-size: 1.1em; line-height: 1.6; margin-bottom: 0.5em; }
+	#news-entries ul { font-size: 1.1em; line-height: 1.6; margin-bottom: 1.2em; padding-left: 20px; list-style: disc; }
 	@media (max-width: 768px) {
 	/* Tabs nav: horizontal scroll on mobile. */
 	.tabs ul.ui-tabs-nav {
@@ -164,8 +166,8 @@
                 <li><a href="#info-tab">About</a></li>
                 <li><a href="#license-tab">License</a></li>
             </ul>
-			<aside id="announcement-banner" role="status" aria-live="polite">
-				<span><strong>New:</strong> Zn VASP model. <a id="announcement-news-link" href="#news-tab">News</a></span>
+			<aside id="announcement-banner" role="status" aria-live="polite" hidden>
+				<span><strong id="announcement-date"></strong> <span id="announcement-items"></span> <a id="announcement-news-link" href="#news-tab">News</a></span>
 				<button id="announcement-close" type="button" aria-label="Dismiss announcement">&times;</button>
 			</aside>
 
@@ -270,10 +272,7 @@
 				<div class="container_24">
 					<div class="grid_24">
 						<h1 style="border: 0px solid black;">News</h1>
-						<p style="font-size: 1.1em; line-height: 1.6; margin-bottom: 0.5em;"><strong>October 30, 2026</strong></p>
-						<ul style="font-size: 1.1em; line-height: 1.6; margin-bottom: 1.2em; padding-left: 20px;">
-							<li>Zn VASP model added.</li>
-						</ul>
+						<div id="news-entries"></div>
 					</div>
 					<div class="clear"></div>
 				</div>
@@ -419,7 +418,7 @@
 
 	<script>
 		$(document).ready(function () {
-			$(".tabs").tabs({
+			const tabs = $('.tabs').tabs({
 				activate: function (event, ui) {
 					// forces resize of the iframe when going back to the Analysis tab
 					if (ui.newPanel.attr('id') === 'app-tab' && window.forceDashResize) {
@@ -428,16 +427,53 @@
 				}
 			});
 
+			const newsEntries = $('#news-entries');
 			const announcement = $('#announcement-banner');
-			const announcementKey = 'lightshowai-announcement-zn-vasp-dismissed';
-			try { announcement.prop('hidden', localStorage.getItem(announcementKey) === 'true'); } catch (e) {}
-			$('#announcement-close').on('click', function () {
-				announcement.prop('hidden', true);
-				try { localStorage.setItem(announcementKey, 'true'); } catch (e) {}
-			});
-			$('#announcement-news-link').on('click', function (event) {
+			const formatDate = date => new Date(date).toLocaleDateString('en-US', { dateStyle: 'long', timeZone: 'UTC' });
+
+			// Replace [paper] in either message with the item's citation link.
+			function newsText(message, paper) {
+				const [before, after] = message.split('[paper]');
+				const text = document.createTextNode(before);
+				if (after === undefined) return [text];
+				const link = $('<a>', { text: paper.label, href: paper.url, target: '_blank', rel: 'noopener noreferrer' });
+				return [text, link[0], document.createTextNode(after)];
+			}
+
+			function renderNews(entries) {
+				entries.sort((a, b) => b.date.localeCompare(a.date));
+
+				for (const { date, items } of entries) {
+					const heading = $('<p>').append($('<strong>').text(formatDate(date)));
+					const list = $('<ul>');
+					for (const item of items) {
+						list.append($('<li>').append(newsText(item.details, item.paper)));
+					}
+					newsEntries.append(heading, list);
+				}
+
+				const [latest] = entries;
+				if (!latest) return;
+				$('#announcement-date').text(formatDate(latest.date));
+				const summary = $('#announcement-items');
+				latest.items.forEach((item, index) => {
+					const prefix = latest.items.length > 1 ? `(${index + 1}) ` : '';
+					summary.append(newsText(prefix + item.banner, item.paper), ' ');
+				});
+				announcement.prop('hidden', false);
+			}
+
+			$.ajax('assets/news.json', { dataType: 'json', cache: false })
+				.then(renderNews)
+				.catch(error => {
+					newsEntries.html('<p>News is temporarily unavailable.</p>');
+					console.error('Could not load news', error);
+				});
+
+			$('#announcement-close').on('click', () => announcement.prop('hidden', true));
+			$('#announcement-news-link').on('click', event => {
 				event.preventDefault();
-				$('.tabs').tabs('option', 'active', $('.tabs ul.ui-tabs-nav a[href="#news-tab"]').parent().index());
+				tabs.find('.ui-tabs-nav a[href="#news-tab"]').trigger('click');
 			});
 
 			fetch('/visitor-count')

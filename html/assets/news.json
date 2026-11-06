@@ -1,0 +1,23 @@
+[
+  {
+    "date": "2026-11-06",
+    "items": [
+      {
+        "banner": "The Zn VASP model for ZnCl₂ solutions is now available.",
+        "details": "The Zn K-edge XANES VASP model is now available in the web interface. It was trained on aqueous ZnCl₂ solutions and applies only to those solutions ([paper]).",
+        "paper": {
+          "label": "Journal of Physical Chemistry B 130 (19), 5084–5096 (2026)",
+          "url": "https://doi.org/10.1021/acs.jpcb.6c00464"
+        }
+      },
+      {
+        "banner": "The Ti K-edge XANES benchmark paper is on [paper].",
+        "details": "The Ti K-edge XANES benchmark paper is on arXiv ([paper]). It evaluates key physical effects in the simulations and compares simulated spectra with experimental data. It describes how the Ti VASP model accounts for many-body shake-up effects.",
+        "paper": {
+          "label": "arXiv:2609.33776",
+          "url": "https://arxiv.org/abs/2609.33776"
+        }
+      }
+    ]
+  }
+]
