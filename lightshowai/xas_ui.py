@@ -1375,6 +1375,8 @@ def download_selected_xas(n_clicks, st_data, el_type, all_scores, exp_data):
         
     el, theory = el_type.split(' ')
     selected_items = [s for s in all_scores if s.get('selected', False)] if all_scores else []
+    if not selected_items and st_data is not None and st_data.get('xas_model', el_type) != el_type:
+        raise PreventUpdate
     
     with tempfile.TemporaryDirectory() as td:
         tmpdir = pathlib.Path(td)
@@ -1493,6 +1495,7 @@ def apply_shakeup_to_specs(specs, element):
 def decorate_structure_with_xas(st: Structure, el_type, apply_shakeup=False):
     element, theory = el_type.split(' ')
     st_dict = st.as_dict()
+    st_dict['xas_model'] = el_type
     if element in st.composition:
         raw_specs = predict(st, element, theory)
         specs = raw_specs
@@ -1669,10 +1672,6 @@ def handle_batch_upload(contents_list, filenames_list, exp_data, el_type, existi
             # Remove old entry if exists
             existing_scores = [s for s in existing_scores if s['structure_id'] != structure_id]
             
-            # Store structure for later download
-            st_dict = st.as_dict()
-            st_dict['xas'] = specs
-
             # Add new score entry
             existing_scores.append({
                 'structure_id': structure_id,
@@ -1729,7 +1728,7 @@ def handle_batch_upload(contents_list, filenames_list, exp_data, el_type, existi
     return (
         existing_scores,
         build_scores_table(existing_scores, sort_metric),
-        comparison_range,
+        {el_type: comparison_range},
         status_msg,
         None,  # Clear the upload contents
         last_st_dict if last_st_dict else dash.no_update,
@@ -1875,6 +1874,7 @@ def build_figure_with_exp(predicted_spectrum, exp_data, el_type, is_average, no_
     )
     
     # Apply comparison range to x-axis to zoom into the comparison region
+    comparison_range = comparison_range.get(el_type) if isinstance(comparison_range, dict) else None
     if has_exp_data and comparison_range is not None and len(comparison_range) == 2:
         x_start, x_end = comparison_range
         if x_start < x_end and (x_end - x_start) > 5:
@@ -1917,6 +1917,8 @@ def build_figure_with_exp(predicted_spectrum, exp_data, el_type, is_average, no_
 def predict_average_xas(st_data: dict, exp_data: dict, energy_shift: float, comparison_range, structure_scores, el_type, structure_source) -> Structure:
     if st_data is None and exp_data is None:
         raise PreventUpdate
+    if st_data is not None and st_data.get('xas_model', el_type) != el_type:
+        raise PreventUpdate
     
     current_structure_id = None
     if structure_source and isinstance(structure_source, str):
@@ -1925,14 +1927,17 @@ def predict_average_xas(st_data: dict, exp_data: dict, energy_shift: float, comp
         else:
             current_structure_id = structure_source
     
-    selected_spectra = None
-    if structure_scores is not None and len(structure_scores) > 0:
-        selected_spectra = [s for s in structure_scores if s.get('selected', False) and 'spectrum' in s]
+    element = el_type.split(' ')[0]
+    selected_spectra = [
+        score for score in structure_scores or []
+        if score.get('selected', False) and 'spectrum' in score
+        and (score.get('structure_dict') or {}).get('xas_model', score.get('element')) in (el_type, element)
+    ]
     
     predicted_spectrum = None
     no_element = False
     
-    if selected_spectra is None and st_data is not None:
+    if not selected_spectra and st_data is not None:
         specs = st_data.get('xas', {})
         if len(specs) == 0:
             no_element = True
@@ -1960,7 +1965,7 @@ def predict_average_xas(st_data: dict, exp_data: dict, energy_shift: float, comp
     State('st_source', 'children')
 )
 def predict_site_specific_xas(sel, st_data, exp_data, el_type, energy_shift, comparison_range, structure_source) -> Structure:
-    if st_data is None:
+    if st_data is None or st_data.get('xas_model', el_type) != el_type:
         raise PreventUpdate
     
     current_structure_id = None
@@ -2163,6 +2168,9 @@ def update_matching_results(st_data, exp_data, clear_clicks, checkbox_values, so
         else:
             return existing_scores, build_scores_table(existing_scores, sort_metric), dash.no_update
     
+    if st_data.get('xas_model', el_type) != el_type:
+        raise PreventUpdate
+
     specs = st_data.get('xas', {})
     if len(specs) == 0:
         if len(existing_scores) == 0:
@@ -2204,7 +2212,7 @@ def update_matching_results(st_data, exp_data, clear_clicks, checkbox_values, so
     })
     
     updated_scores = sort_scores_by_metric(updated_scores, sort_metric)
-    return updated_scores, build_scores_table(updated_scores, sort_metric), match_result['comparison_range']
+    return updated_scores, build_scores_table(updated_scores, sort_metric), {el_type: match_result['comparison_range']}
 
 
 def sort_scores_by_metric(scores, metric):
