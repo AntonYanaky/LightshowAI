@@ -1875,7 +1875,13 @@ def build_figure_with_exp(predicted_spectrum, exp_data, el_type, is_average, no_
     
     # Apply comparison range to x-axis to zoom into the comparison region
     comparison_range = comparison_range.get(el_type) if isinstance(comparison_range, dict) else None
-    if has_exp_data and comparison_range is not None and len(comparison_range) == 2:
+    if element == 'Zn' and (has_selected or predicted_spectrum is not None):
+        if has_exp_data and comparison_range is not None and len(comparison_range) == 2:
+            x_start = comparison_range[0]
+        else:
+            x_start = min(trace.x[0] for trace in fig.data if trace.mode == 'lines')
+        layout_config['xaxis'] = dict(range=[x_start, x_start + 35], autorange=False, title=x_axis_label)
+    elif has_exp_data and comparison_range is not None and len(comparison_range) == 2:
         x_start, x_end = comparison_range
         if x_start < x_end and (x_end - x_start) > 5:
             pad_x = (x_end - x_start) * 0.1
